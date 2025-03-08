@@ -1,16 +1,24 @@
 import downloadQueue from './api/queues/downloadQueue';
 import { exec } from 'child_process';
 import { logger } from './configs/logger';
+import { DownloadQueueType } from './common/helpers/types';
 
 // Processa os jobs da fila
 downloadQueue.process(10, async (job) => {
-  logger.info('JOB: ' + JSON.stringify(job))
   const url = job.data.dto.url;
-  logger.info('URL: ' + url)
+  const path = job.data.dto.path;
+  const type = job.data.dto.type;
+  const audioType = job.data.dto.audioType;
+  const videoType = job.data.dto.videoType;
   return new Promise<string>((resolve, reject) => {
 
     const firstCommand = `yt-dlp -j "${url}"`
-    const command = `yt-dlp -x --audio-format m4a --embed-thumbnail --add-metadata -o "~/Downloads/%(title)s.%(ext)s" "${url}"`;
+    let command = '';
+    if (type === DownloadQueueType.VIDEO) {
+      command = `yt-dlp -o "${path}/%(title)s.%(ext)s" -f "bestvideo[height=1080]+bestaudio/best[height=1080]" --recode-video ${videoType} "${url}"`
+    } else {
+      command = `yt-dlp -x --audio-format ${audioType} --embed-thumbnail --add-metadata -o "${path}/%(title)s.%(ext)s" "${url}"`;
+    };
     logger.info(`Executando comando: ${command}`);
 
     exec(command, (error, stdout, stderr) => {
